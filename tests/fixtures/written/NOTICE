@@ -4,4 +4,5 @@ identifiers: a CloudTrail S3 log file, a Microsoft 365 audit log export as
 the Purview portal writes it (CSV, byte order mark, AuditData), Entra ID
 sign-ins and directory audits as Microsoft Graph returns them, an Azure
 activity log record as diagnostic settings write it, and Entra ID sign-ins
-as a Log Analytics export. Under this crate's licences.
+as a Log Analytics export, and Google Workspace activities as the Admin
+SDK Reports API lists them. Under this crate's licences.

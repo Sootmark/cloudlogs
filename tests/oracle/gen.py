@@ -6,6 +6,7 @@ service, actor, actor id, source address, user agent, target, result, id
 and location. Independent of this crate: no code shared.
 
 Run: python3 -I tests/oracle/gen.py tests/fixtures/written > tests/oracle/written.tsv
+     python3 -I tests/oracle/gen.py tests/fixtures/attack_data > tests/oracle/attack_data.tsv
 """
 
 import csv
@@ -95,7 +96,35 @@ def azure(r):
             get(r, "correlationId"), None)
 
 
+TARGETS = ["USER_EMAIL", "GROUP_EMAIL", "target_user", "doc_title", "app_name", "DOMAIN_NAME",
+           "SETTING_NAME", "affected_email_address"]
+
+
+def parameter(p):
+    for key in ("value", "boolValue", "intValue"):
+        if key in p:
+            v = p[key]
+            return ("true" if v else "false") if isinstance(v, bool) else str(v)
+    if "multiValue" in p:
+        return ", ".join(str(v) for v in p["multiValue"])
+    return None
+
+
+def workspace(r):
+    params = {}
+    for p in r["event"].get("parameters") or []:
+        value = parameter(p)
+        if value is not None:
+            params.setdefault(p["name"], value)
+    target = next((params[t] for t in TARGETS if t in params), None)
+    return ("workspace", r["id"]["time"], r["event"]["name"], r["id"]["applicationName"],
+            get(r, "actor.email"), get(r, "actor.profileId"), get(r, "ipAddress"), None,
+            target, None, get(r, "id.uniqueQualifier"), None)
+
+
 def classify(r):
+    if "applicationName" in (r.get("id") or {}):
+        return workspace(r)
     if "eventSource" in r:
         return cloudtrail(r)
     if "CreationTime" in r:
@@ -111,22 +140,36 @@ def records(path):
     text = path.read_text(encoding="utf-8-sig")
     if path.suffix == ".csv":
         return [(i, json.loads(row["AuditData"])) for i, row in enumerate(csv.DictReader(io.StringIO(text)), 2)]
-    document = json.loads(text)
-    for holder in ("Records", "records", "value"):
+    try:
+        document = json.loads(text)
+    except json.JSONDecodeError:
+        return [(i, json.loads(line)) for i, line in enumerate(text.splitlines(), 1) if line.strip()]
+    for holder in ("Records", "records", "value", "items"):
         if isinstance(document, dict) and holder in document:
             document = document[holder]
+    if isinstance(document, dict):
+        document = [document]
     return list(enumerate(document, 1))
+
+
+def events(record):
+    """A Workspace activity's events, one record each."""
+    if "events" not in record:
+        return [record]
+    activity = {k: v for k, v in record.items() if k != "events"}
+    return [dict(activity, event=e) for e in record["events"]]
 
 
 def main(folder):
     lines = []
     for path in sorted(pathlib.Path(folder).glob("*")):
-        if path.name == "NOTICE":
+        if path.name in ("NOTICE", "LICENSE"):
             continue
-        for position, record in records(path):
-            fields = list(classify(record))
-            fields[1] = iso(fields[1])
-            lines.append("\t".join([path.name, str(position)] + [f or "" for f in fields]))
+        for position, activity in records(path):
+            for record in events(activity):
+                fields = list(classify(record))
+                fields[1] = iso(fields[1])
+                lines.append("\t".join([path.name, str(position)] + [f or "" for f in fields]))
     print("\n".join(lines))
 
 

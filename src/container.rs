@@ -7,7 +7,7 @@ use common::json::{self, Json};
 use crate::csv;
 
 /// Members that hold a document's records.
-const HOLDERS: [&str; 4] = ["Records", "records", "value", "Events"];
+const HOLDERS: [&str; 5] = ["Records", "records", "value", "Events", "items"];
 
 /// The records of `data`, each with its position (a line, a CSV row or an
 /// element, from 1). With `head`, `data` may end mid-record: what can't be

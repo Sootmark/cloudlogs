@@ -25,11 +25,14 @@ pub enum Source {
     AzureActivity,
     /// Google Cloud logging.
     GoogleCloud,
+    /// Google Workspace's audit activities (the Admin SDK Reports API:
+    /// admin, login, Drive, OAuth tokens, …), one event each.
+    GoogleWorkspace,
 }
 
 impl Source {
     /// A short name (`cloudtrail`, `m365`, `entra_signin`, `entra_audit`,
-    /// `azure_activity`, `gcp`).
+    /// `azure_activity`, `gcp`, `workspace`).
     #[must_use]
     pub const fn name(self) -> &'static str {
         match self {
@@ -39,6 +42,7 @@ impl Source {
             Self::EntraAudit => "entra_audit",
             Self::AzureActivity => "azure_activity",
             Self::GoogleCloud => "gcp",
+            Self::GoogleWorkspace => "workspace",
         }
     }
 }
@@ -216,6 +220,33 @@ const GOOGLE_CLOUD: Mapping = Mapping {
     ],
 };
 
+const GOOGLE_WORKSPACE: Mapping = Mapping {
+    time: &["id.time"],
+    operation: &["event.name"],
+    service: &["id.applicationName"],
+    actor: &["actor.email", "actor.key"],
+    actor_id: &["actor.profileId"],
+    source_ip: &["ipAddress"],
+    user_agent: &[],
+    target: &[],
+    result: &[],
+    id: &["id.uniqueQualifier"],
+    location: &[],
+};
+
+/// The parameters naming what a Workspace event was done to, first found
+/// first.
+const WORKSPACE_TARGETS: [&str; 8] = [
+    "USER_EMAIL",
+    "GROUP_EMAIL",
+    "target_user",
+    "doc_title",
+    "app_name",
+    "DOMAIN_NAME",
+    "SETTING_NAME",
+    "affected_email_address",
+];
+
 /// Which log a record is from, by the members it has.
 pub(crate) fn classify(record: &Json) -> Option<Source> {
     let has = |name: &str| record.get(name).is_some_and(|v| !matches!(v, Json::Null));
@@ -237,6 +268,13 @@ pub(crate) fn classify(record: &Json) -> Option<Source> {
         Some(Source::AzureActivity)
     } else if has("logName") && (has("timestamp") || has("receiveTimestamp")) {
         Some(Source::GoogleCloud)
+    } else if record
+        .get("id")
+        .and_then(|id| id.get("applicationName"))
+        .is_some()
+        && (has("events") || has("event"))
+    {
+        Some(Source::GoogleWorkspace)
     } else {
         None
     }
@@ -265,6 +303,7 @@ pub(crate) fn event(source: Source, record: &Json) -> Event {
         Source::EntraAudit => &ENTRA_AUDIT,
         Source::AzureActivity => &AZURE_ACTIVITY,
         Source::GoogleCloud => &GOOGLE_CLOUD,
+        Source::GoogleWorkspace => &GOOGLE_WORKSPACE,
     };
     let mut event = Event {
         source: Some(source),
@@ -289,6 +328,7 @@ pub(crate) fn event(source: Source, record: &Json) -> Event {
     match source {
         Source::CloudTrail => cloudtrail(&mut event, &records),
         Source::EntraSignIn => sign_in(&mut event, &records),
+        Source::GoogleWorkspace => workspace(&mut event, record),
         _ => {}
     }
     event
@@ -349,6 +389,78 @@ fn sign_in(event: &mut Event, records: &[&Json]) {
         (Some(city), Some(country)) => Some(format!("{city}, {country}")),
         (city, country) => city.or(country),
     };
+}
+
+/// A Workspace activity's records: one per event (the API lists them under
+/// `events`; Splunk's add-on writes one per line, under `event`), each the
+/// activity with that event under `event`.
+pub(crate) fn expand(source: Source, record: Json) -> Vec<Json> {
+    let Json::Object(members) = record else {
+        return vec![record];
+    };
+    let events = match members.iter().find(|(name, _)| name == "events") {
+        Some((_, Json::Array(events))) if source == Source::GoogleWorkspace => events.clone(),
+        _ => return vec![Json::Object(members)],
+    };
+    let activity: Vec<(String, Json)> = members
+        .into_iter()
+        .filter(|(name, _)| name != "events")
+        .collect();
+    events
+        .into_iter()
+        .map(|event| {
+            let mut members = activity.clone();
+            members.push(("event".to_owned(), event));
+            Json::Object(members)
+        })
+        .collect()
+}
+
+/// A Workspace event's parameters as `event.parameters.<name>` (a list's
+/// values joined with `, `), and the one naming what it was done to as the
+/// target.
+fn workspace(event: &mut Event, record: &Json) {
+    let parameters = record
+        .get("event")
+        .and_then(|e| e.get("parameters"))
+        .and_then(Json::as_array)
+        .unwrap_or_default();
+    let mut named = Vec::new();
+    for parameter in parameters {
+        let Some(name) = parameter.get("name").and_then(Json::as_str) else {
+            continue;
+        };
+        let value = ["value", "boolValue", "intValue"]
+            .iter()
+            .find_map(|key| parameter.get(key).and_then(text))
+            .or_else(|| {
+                let values = parameter.get("multiValue")?.as_array()?;
+                Some(
+                    values
+                        .iter()
+                        .filter_map(text)
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                )
+            });
+        if let Some(value) = value {
+            named.push((name.to_owned(), value));
+        }
+    }
+    event.target = WORKSPACE_TARGETS.iter().find_map(|wanted| {
+        named
+            .iter()
+            .find(|(name, _)| name == wanted)
+            .map(|(_, value)| value.clone())
+    });
+    event
+        .fields
+        .retain(|(path, _)| !path.starts_with("event.parameters."));
+    event.fields.extend(
+        named
+            .into_iter()
+            .map(|(name, value)| (format!("event.parameters.{name}"), value)),
+    );
 }
 
 /// The value at `path` as text, if not empty.

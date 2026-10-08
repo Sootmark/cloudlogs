@@ -13,9 +13,13 @@
 //! - Azure's activity log: the REST API's and diagnostic settings' JSON,
 //!   and the Azure CLI's and SDK's spelling.
 //! - Google Cloud's audit and other logs (`gcloud logging read`'s JSON).
+//! - Google Workspace's audit activities, as the Admin SDK Reports API
+//!   lists them (admin, login, Drive, OAuth tokens, …) and as Splunk's
+//!   add-on writes them: one event per activity event, its parameters by
+//!   name.
 //!
 //! Whatever the container (a JSON array, an object holding the records
-//! under `Records`, `records`, `value` or `Events`, JSON lines, or that
+//! under `Records`, `records`, `value`, `Events` or `items`, JSON lines, or that
 //! CSV), each record becomes an [`Event`] with the same main fields, and
 //! all its values, flattened, in `fields`.
 //!
@@ -121,13 +125,14 @@ pub fn read(data: &[u8]) -> Log {
     let records = container::records(data, false, &mut log.problems);
     let mut unknown = 0usize;
     for (position, record) in records {
-        match source::classify(&record) {
-            Some(source) => {
-                let mut event = source::event(source, &record);
-                event.position = position;
-                log.events.push(event);
-            }
-            None => unknown += 1,
+        let Some(source) = source::classify(&record) else {
+            unknown += 1;
+            continue;
+        };
+        for record in source::expand(source, record) {
+            let mut event = source::event(source, &record);
+            event.position = position;
+            log.events.push(event);
         }
     }
     if unknown > 0 {

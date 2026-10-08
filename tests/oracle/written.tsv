@@ -9,3 +9,8 @@ log-analytics-signins.json	1	entra_signin	2024-03-05T09:05:11.0000000Z	Sign-in	B
 m365-purview.csv	2	m365	2024-03-05T09:14:22.0000000Z	New-InboxRule	Exchange	bob@contoso.example	10032000ABCDEF01	[2001:db8::5]:49152		bob@contoso.example\Delete invoices	True	7b1c0000-0000-4000-8000-000000000011	
 m365-purview.csv	3	m365	2024-03-05T09:20:01.0000000Z	MailItemsAccessed	Exchange	bob@contoso.example	10032000ABCDEF01	203.0.113.50	Client=OWA;Mozilla/5.0 (X11; Linux x86_64)		Succeeded	7b1c0000-0000-4000-8000-000000000012	
 m365-purview.csv	4	m365	2024-03-05T09:02:47.0000000Z	UserLoggedIn	AzureActiveDirectory	bob@contoso.example	5a5a0000-0000-4000-8000-0000000000bb	203.0.113.50	python-requests/2.31.0	00000002-0000-0ff1-ce00-000000000000	Success	7b1c0000-0000-4000-8000-000000000013	
+workspace-reports.json	1	workspace	2024-03-05T09:12:44.5120000Z	download	drive	mallory@example.com	100000000000000000001	203.0.113.50		Payroll 2024.xlsx		-1234567890123456789	
+workspace-reports.json	1	workspace	2024-03-05T09:12:44.5120000Z	change_user_access	drive	mallory@example.com	100000000000000000001	203.0.113.50		outside@example.net		-1234567890123456789	
+workspace-reports.json	2	workspace	2024-03-05T09:20:01.0000000Z	authorize	token	mallory@example.com	100000000000000000001	203.0.113.50		Mail Sync Helper		555	
+workspace-reports.json	3	workspace	2024-03-05T10:02:13.0040000Z	CREATE_USER	admin	admin@example.com	100000000000000000002	198.51.100.7		backdoor@example.com		777	
+workspace-reports.json	3	workspace	2024-03-05T10:02:13.0040000Z	ASSIGN_ROLE	admin	admin@example.com	100000000000000000002	198.51.100.7		backdoor@example.com		777	

@@ -1,0 +1,15 @@
+These files are from Splunk's attack_data (https://github.com/splunk/attack_data),
+under the Apache License 2.0 (LICENSE, in this directory), at commit
+4389fa7a4e74a7c083c0fbe448fa2c7c32378981, renamed, otherwise unmodified (SHA-256):
+
+  gws_admin_disable_mfa.log  f3d2fa6a1e78857bf03d606276a19fecb3c26869c423052c401ce34be4be1924
+    from datasets/attack_techniques/T1556/gcp_disable_mfa/gws_admin.log
+  gws_login_failures.json  c8e9f68c26e016e82d87f0e3bb3697b2b3f1d187ba16f5b02b2f07758b2d5672
+    from datasets/attack_techniques/T1110.003/gcp_gws_multiple_login_failure/gws_login.json
+  gws_login_failed_mfa.log  47564819e66c99b9991c5690f41eef4ccf1d6f4ee2f676f4a38c02855e088d1b
+    from datasets/attack_techniques/T1621/multiple_failed_mfa_gws/gws_login.log
+  gws_login_single_factor.log  904f9822a9bc726d5e3be035c8fc55dd60cc4a6de8b3a0d39f16496d205fdcc6
+    from datasets/attack_techniques/T1078.004/gcp_single_factor_auth/gws_login.log
+
+Splunk's Google Workspace add-on writes one line per activity event, the
+event under "event".
