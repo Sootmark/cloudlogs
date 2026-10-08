@@ -1,0 +1,7 @@
+The files here were written for these tests, after the providers'
+documented formats, with example addresses (RFC 5737, RFC 3849) and made-up
+identifiers: a CloudTrail S3 log file, a Microsoft 365 audit log export as
+the Purview portal writes it (CSV, byte order mark, AuditData), Entra ID
+sign-ins and directory audits as Microsoft Graph returns them, an Azure
+activity log record as diagnostic settings write it, and Entra ID sign-ins
+as a Log Analytics export. Under this crate's licences.

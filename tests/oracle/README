@@ -1,0 +1,23 @@
+plaso.tsv: what plaso (the log2timeline/plaso:20260720 Docker image) reads
+from the samples in tests/fixtures/plaso/ with its jsonl parser
+(aws_cloudtrail_log, azure_activity_log, gcp_log, microsoft365_audit_log
+plugins; psort -o json_line), one line per event: the file, the time
+(microseconds since 1970, UTC), then the values compared, by plugin:
+
+- CloudTrail: event name, source, user name, user ARN, source address,
+  resources, access key;
+- Microsoft 365: operation, workload, user id, user key, client address,
+  object id, result, record id, record type, user type, organisation;
+- Azure activity: operation, resource provider, caller, client address,
+  resource id, event data id, level, correlation id, resource group,
+  resource type, subscription, tenant, event name;
+- Google Cloud: method, service, principal e-mail, actor user, caller
+  address, user agent, resource name, status message, log name, severity,
+  text payload, event subtype.
+
+Lists are joined with ", ". Written from plaso's output, not from this
+crate.
+
+written.tsv: the main fields of the records in tests/fixtures/written/
+(formats plaso has no samples of), as Python's own JSON and CSV modules
+read them, written by gen.py (see its header).
