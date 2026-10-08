@@ -59,6 +59,9 @@ pub struct Event {
     /// Its position in the file, from 1 (a line for JSON lines and CSV, an
     /// element otherwise).
     pub position: usize,
+    /// Its place among the events of one record, from 0: a Google
+    /// Workspace activity holds several.
+    pub part: usize,
     /// When it happened (UTC).
     pub time: Option<Ts>,
     /// What was done (`ConsoleLogin`, `MailItemsAccessed`, `Sign-in`,
@@ -129,9 +132,10 @@ pub fn read(data: &[u8]) -> Log {
             unknown += 1;
             continue;
         };
-        for record in source::expand(source, record) {
+        for (part, record) in source::expand(source, record).into_iter().enumerate() {
             let mut event = source::event(source, &record);
             event.position = position;
+            event.part = part;
             log.events.push(event);
         }
     }

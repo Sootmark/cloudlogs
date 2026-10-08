@@ -89,6 +89,7 @@ fn every_value_is_kept() {
     );
     let log = cloudlogs::read(&std::fs::read(format!("{folder}/workspace-reports.json")).unwrap());
     let token = &log.events[2];
+    assert_eq!((log.events[1].position, log.events[1].part), (1, 1));
     assert_eq!(
         token.get("event.parameters.scope"),
         Some("https://mail.google.com/, https://www.googleapis.com/auth/drive")

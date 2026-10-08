@@ -4,7 +4,7 @@ Cloud and SaaS audit logs, for forensics: who did what, from where, to which res
 
 ```toml
 [dependencies]
-sootmark-cloudlogs = "0.2"
+sootmark-cloudlogs = "0.3"
 ```
 
 ```rust

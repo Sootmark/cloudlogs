@@ -1,6 +1,6 @@
 [package]
 name = "sootmark-cloudlogs"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.80"
 description = "Cloud and SaaS audit logs for forensics: AWS CloudTrail, the Microsoft 365 unified audit log, Entra ID sign-ins and audits, Azure activity, Google Cloud audit logs, Google Workspace audit activities; as exported (JSON, JSON lines, CSV)."
